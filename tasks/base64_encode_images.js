@@ -10,42 +10,52 @@
 
 module.exports = function(grunt) {
 
-  // Please see the Grunt documentation for more information regarding task
-  // creation: http://gruntjs.com/creating-tasks
-
   grunt.registerMultiTask('base64EncodeImages', 'A simple grunt task for base64 encoding a list of images into JSON', function() {
     // Merge task-specific and/or target-specific options with these defaults.
     var options = this.options({
-      punctuation: '.',
-      separator: ', '
+      prefix: ''
     });
 
     // Iterate over all specified file groups.
     this.files.forEach(function(f) {
 
-      grunt.log.writeln("Here");
-
-      // Concat specified files.
-      var src = f.src.filter(function(filepath) {
-        // Warn on and remove invalid source files (if nonull was set).
+      var source_files = f.src.filter(function(filepath) {
         if (!grunt.file.exists(filepath)) {
-          grunt.log.warn('Source file "' + filepath + '" not found.');
           return false;
         } else {
           return true;
         }
-      }).map(function(filepath) {
-        // Read file source.
-        return grunt.file.read(filepath);
-      }).join(grunt.util.normalizelf(options.separator));
+      });
 
-      // Handle options.
-      src += options.punctuation;
+      var images_map = {};  // Mapping of image name and file path
 
-      // Write the destination file.
-      grunt.file.write(f.dest, src);
+      if (source_files.length) {
+        for (var i=0;i<source_files.length;i++) {
+          var file_path = source_files[i];
 
-      // Print a success message.
+          var contents = grunt.file.read(file_path);
+          var object = JSON.parse(contents);
+
+          for (var image_name in object) {
+            if(!object.hasOwnProperty(image_name)) {
+              continue;
+            }
+
+            var image_file_path = object[image_name];
+            var extension = image_file_path.split('.').pop();
+
+            if (grunt.file.exists(image_file_path)) {
+              var base64 = grunt.file.read(image_file_path, {encoding: 'base64'});
+              var data_uri = 'data:image/' + (extension === 'jpg' ? 'jpeg' : extension) + ';base64,' + base64;
+              images_map[options.prefix + image_name] = data_uri;
+            } else {
+              grunt.log.writeln("File doesn't exist: "+image_file_path);
+            }
+          }
+        }
+      }
+      
+      grunt.file.write(f.dest, JSON.stringify(images_map));
       grunt.log.writeln('File "' + f.dest + '" created.');
     });
   });
