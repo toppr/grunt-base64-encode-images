@@ -23,8 +23,7 @@ module.exports = function(grunt) {
     // Iterate over all specified file groups.
     this.files.forEach(function(f) {
 
-      grunt.log.writeln();
-
+      grunt.log.writeln("Here");
 
       // Concat specified files.
       var src = f.src.filter(function(filepath) {
